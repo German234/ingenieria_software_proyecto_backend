@@ -1,11 +1,14 @@
 package com.mrbeans.circulosestudiobackend.userXwork_group.controller;
 
+import com.mrbeans.circulosestudiobackend.common.dto.PaginationResponse;
 import com.mrbeans.circulosestudiobackend.common.dto.SuccessResponse;
 import com.mrbeans.circulosestudiobackend.security.CustomUserPrincipal;
 import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.*;
 import com.mrbeans.circulosestudiobackend.userXwork_group.service.UserXWorkGroupService;
 import com.mrbeans.circulosestudiobackend.work_group.dtos.WorkGroupResponseDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -127,6 +130,25 @@ public class UserXWorkGroupController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/alumnos/paginated")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<SuccessResponse<PaginationResponse<UserResponseWorkGroupDto>>> getAlumnosWithPagination(
+            @RequestParam(required = false) UUID workGroupId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size);
+        PaginationResponse<UserResponseWorkGroupDto> alumnos =
+                userXWorkGroupService.getAlumnosWithPagination(workGroupId, pageable);
+
+        SuccessResponse<PaginationResponse<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
+                HttpStatus.OK.value(),
+                "Alumnos obtenidos con paginación",
+                alumnos
+        );
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/tutores")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getAllTutorsWithWorkgroups() {
@@ -136,6 +158,25 @@ public class UserXWorkGroupController {
         SuccessResponse<List<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
                 HttpStatus.OK.value(),
                 "Todos los tutores con grupos de trabajo obtenidos",
+                tutores
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/tutores/paginated")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<SuccessResponse<PaginationResponse<UserResponseWorkGroupDto>>> getTutorsWithPagination(
+            @RequestParam(required = false) UUID workGroupId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size);
+        PaginationResponse<UserResponseWorkGroupDto> tutores =
+                userXWorkGroupService.getTutorsWithPagination(workGroupId, pageable);
+
+        SuccessResponse<PaginationResponse<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
+                HttpStatus.OK.value(),
+                "Tutores obtenidos con paginación",
                 tutores
         );
         return ResponseEntity.ok(response);
