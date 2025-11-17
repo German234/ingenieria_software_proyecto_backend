@@ -1,6 +1,5 @@
 package com.mrbeans.circulosestudiobackend.user.dtos;
 
-import jakarta.validation.constraints.Email;
 import lombok.Data;
 
 import java.util.UUID;

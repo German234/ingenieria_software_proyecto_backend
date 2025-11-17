@@ -1,6 +1,7 @@
 
 package com.mrbeans.circulosestudiobackend.userXwork_group.service.Impl;
 
+import com.mrbeans.circulosestudiobackend.common.dto.PaginationResponse;
 import com.mrbeans.circulosestudiobackend.common.exception.GenericException;
 import com.mrbeans.circulosestudiobackend.documents_x_support_material.dto.ResponseSupportMaterialDto;
 import com.mrbeans.circulosestudiobackend.documents_x_support_material.service.DocumentXSupportMaterialService;
@@ -17,6 +18,8 @@ import com.mrbeans.circulosestudiobackend.work_group.entity.WorkGroupEntity;
 import com.mrbeans.circulosestudiobackend.work_group.repositories.IWorkGroupsRepository;
 import com.mrbeans.circulosestudiobackend.work_group.service.WorkGroupService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -277,5 +280,53 @@ public class UserXWorkGroupImpl implements UserXWorkGroupService {
         dto.setSlug(wg.getSlug());
         dto.setBackgroundImage(wg.getImageDocument().getUrl());
         return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginationResponse<UserResponseWorkGroupDto> getAlumnosWithPagination(UUID workGroupId, Pageable pageable) {
+        Page<UserEntity> page;
+        
+        if (workGroupId == null) {
+            page = userRepository.findByRoleName("ALUMNO", pageable);
+        } else {
+            Page<UserXWorkGroupEntity> linkPage = userXWorkGroupRepository.findByWorkGroupIdAndRoleName(workGroupId, "ALUMNO", pageable);
+            page = linkPage.map(UserXWorkGroupEntity::getUser);
+        }
+        
+        List<UserResponseWorkGroupDto> content = page.getContent().stream()
+                .map(this::toDto)
+                .toList();
+        
+        return new PaginationResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginationResponse<UserResponseWorkGroupDto> getTutorsWithPagination(UUID workGroupId, Pageable pageable) {
+        Page<UserEntity> page;
+        
+        if (workGroupId == null) {
+            page = userRepository.findByRoleName("TUTOR", pageable);
+        } else {
+            Page<UserXWorkGroupEntity> linkPage = userXWorkGroupRepository.findByWorkGroupIdAndRoleName(workGroupId, "TUTOR", pageable);
+            page = linkPage.map(UserXWorkGroupEntity::getUser);
+        }
+        
+        List<UserResponseWorkGroupDto> content = page.getContent().stream()
+                .map(this::toDto)
+                .toList();
+        
+        return new PaginationResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements()
+        );
     }
 }

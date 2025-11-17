@@ -1,11 +1,14 @@
 package com.mrbeans.circulosestudiobackend.userXwork_group.controller;
 
+import com.mrbeans.circulosestudiobackend.common.dto.PaginationResponse;
 import com.mrbeans.circulosestudiobackend.common.dto.SuccessResponse;
 import com.mrbeans.circulosestudiobackend.security.CustomUserPrincipal;
 import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.*;
 import com.mrbeans.circulosestudiobackend.userXwork_group.service.UserXWorkGroupService;
 import com.mrbeans.circulosestudiobackend.work_group.dtos.WorkGroupResponseDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -115,13 +118,39 @@ public class UserXWorkGroupController {
 
     @GetMapping("/alumnos")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getAllStudentsWithWorkgroups() {
-        List<UserResponseWorkGroupDto> alumnos =
-                userXWorkGroupService.getAllAlumnosWithWorkgroups();
+    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getAllStudentsWithWorkgroups(
+            @RequestParam(required = false) UUID workGroupId
+    ) {
+        List<UserResponseWorkGroupDto> alumnos;
+        
+        if (workGroupId != null) {
+            alumnos = userXWorkGroupService.getAllStudentsByWorkGroupId(workGroupId);
+        } else {
+            alumnos = userXWorkGroupService.getAllAlumnosWithWorkgroups();
+        }
 
         SuccessResponse<List<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
                 HttpStatus.OK.value(),
-                "Todos los alumnos con grupos de trabajo obtenidos",
+                "Alumnos obtenidos",
+                alumnos
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/alumnos/paginated")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<SuccessResponse<PaginationResponse<UserResponseWorkGroupDto>>> getAlumnosWithPagination(
+            @RequestParam(required = false) UUID workGroupId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size);
+        PaginationResponse<UserResponseWorkGroupDto> alumnos =
+                userXWorkGroupService.getAlumnosWithPagination(workGroupId, pageable);
+
+        SuccessResponse<PaginationResponse<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
+                HttpStatus.OK.value(),
+                "Alumnos obtenidos con paginación",
                 alumnos
         );
         return ResponseEntity.ok(response);
@@ -129,13 +158,39 @@ public class UserXWorkGroupController {
 
     @GetMapping("/tutores")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getAllTutorsWithWorkgroups() {
-        List<UserResponseWorkGroupDto> tutores =
-                userXWorkGroupService.getAllTutorsWithWorkgroups();
+    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getAllTutorsWithWorkgroups(
+            @RequestParam(required = false) UUID workGroupId
+    ) {
+        List<UserResponseWorkGroupDto> tutores;
+        
+        if (workGroupId != null) {
+            tutores = userXWorkGroupService.getAllTutorsByWorkGroupId(workGroupId);
+        } else {
+            tutores = userXWorkGroupService.getAllTutorsWithWorkgroups();
+        }
 
         SuccessResponse<List<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
                 HttpStatus.OK.value(),
-                "Todos los tutores con grupos de trabajo obtenidos",
+                "Tutores obtenidos",
+                tutores
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/tutores/paginated")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<SuccessResponse<PaginationResponse<UserResponseWorkGroupDto>>> getTutorsWithPagination(
+            @RequestParam(required = false) UUID workGroupId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size);
+        PaginationResponse<UserResponseWorkGroupDto> tutores =
+                userXWorkGroupService.getTutorsWithPagination(workGroupId, pageable);
+
+        SuccessResponse<PaginationResponse<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
+                HttpStatus.OK.value(),
+                "Tutores obtenidos con paginación",
                 tutores
         );
         return ResponseEntity.ok(response);
