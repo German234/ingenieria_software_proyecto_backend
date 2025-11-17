@@ -1,6 +1,5 @@
 package com.mrbeans.circulosestudiobackend.userXwork_group.repositories;
 
-import com.mrbeans.circulosestudiobackend.user.entity.UserEntity;
 import com.mrbeans.circulosestudiobackend.userXwork_group.entitiy.UserXWorkGroupEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

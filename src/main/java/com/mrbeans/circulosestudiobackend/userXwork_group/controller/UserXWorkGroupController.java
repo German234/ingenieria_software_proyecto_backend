@@ -118,13 +118,20 @@ public class UserXWorkGroupController {
 
     @GetMapping("/alumnos")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getAllStudentsWithWorkgroups() {
-        List<UserResponseWorkGroupDto> alumnos =
-                userXWorkGroupService.getAllAlumnosWithWorkgroups();
+    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getAllStudentsWithWorkgroups(
+            @RequestParam(required = false) UUID workGroupId
+    ) {
+        List<UserResponseWorkGroupDto> alumnos;
+        
+        if (workGroupId != null) {
+            alumnos = userXWorkGroupService.getAllStudentsByWorkGroupId(workGroupId);
+        } else {
+            alumnos = userXWorkGroupService.getAllAlumnosWithWorkgroups();
+        }
 
         SuccessResponse<List<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
                 HttpStatus.OK.value(),
-                "Todos los alumnos con grupos de trabajo obtenidos",
+                "Alumnos obtenidos",
                 alumnos
         );
         return ResponseEntity.ok(response);
@@ -151,13 +158,20 @@ public class UserXWorkGroupController {
 
     @GetMapping("/tutores")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getAllTutorsWithWorkgroups() {
-        List<UserResponseWorkGroupDto> tutores =
-                userXWorkGroupService.getAllTutorsWithWorkgroups();
+    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getAllTutorsWithWorkgroups(
+            @RequestParam(required = false) UUID workGroupId
+    ) {
+        List<UserResponseWorkGroupDto> tutores;
+        
+        if (workGroupId != null) {
+            tutores = userXWorkGroupService.getAllTutorsByWorkGroupId(workGroupId);
+        } else {
+            tutores = userXWorkGroupService.getAllTutorsWithWorkgroups();
+        }
 
         SuccessResponse<List<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
                 HttpStatus.OK.value(),
-                "Todos los tutores con grupos de trabajo obtenidos",
+                "Tutores obtenidos",
                 tutores
         );
         return ResponseEntity.ok(response);
