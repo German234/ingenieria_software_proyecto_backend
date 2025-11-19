@@ -1,13 +1,14 @@
 app:
   upload-dir: ${UPLOADS_PATH}
   base-url: ${UPLOADS_BASE_URL}
-  jwt-secret: ${JWT_SECRET}
-  jwt-expiration-time: 86400000
+
+
   cors:
     allowed-origins:
       - "http://149.56.110.16"
       - "http://localhost:3000"
       - "http://localhost:3001"
+      - "http://dev.lan:3000"
     allowed-methods:
       - "GET"
       - "POST"
@@ -69,3 +70,7 @@ logging:
     org.springframework.security: DEBUG
     org.springframework.security.web: DEBUG
     org.springframework.security.oauth2: DEBUG
+    com.mrbeans.circulosestudiobackend: DEBUG
+    com.mrbeans.circulosestudiobackend.common.filter.CookieTokenFilter: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

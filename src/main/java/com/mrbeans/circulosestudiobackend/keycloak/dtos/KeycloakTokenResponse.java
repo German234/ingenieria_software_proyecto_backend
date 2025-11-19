@@ -12,4 +12,10 @@ public class KeycloakTokenResponse {
     private String expiresIn;
     @JsonProperty("token_type")
     private String tokenType;
+    @JsonProperty("refresh_token")
+    private String refreshToken;
+    @JsonProperty("refresh_expires_in")
+    private String refreshExpiresIn;
+    @JsonProperty("scope")
+    private String scope;
 }
