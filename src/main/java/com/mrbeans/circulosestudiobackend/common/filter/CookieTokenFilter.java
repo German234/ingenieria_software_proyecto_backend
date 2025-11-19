@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.JwtValidationException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -22,6 +23,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -146,6 +148,10 @@ public class CookieTokenFilter extends OncePerRequestFilter {
 
             // Extract authorities from token using JwtTokenProcessor
             var authorities = jwtTokenProcessor.extractAuthoritiesFromToken(token);
+            
+            // Log authorities for debugging
+            logger.info("Extracted authorities from token: {}",
+                authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList()));
 
             // Create authentication object with token and authorities
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

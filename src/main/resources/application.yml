@@ -65,6 +65,12 @@ keycloak:
     user: ${KEYCLOAK_ADMIN_USER:}
     password: ${KEYCLOAK_ADMIN_PASSWORD:}
 
+jwt:
+  auth:
+    converter:
+      principle-attribute: sub
+      resource-id: ${KEYCLOAK_CLIENT_ID}
+
 logging:
   level:
     org.springframework.security: DEBUG

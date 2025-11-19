@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mrbeans.circulosestudiobackend.auth.service.JwtTokenProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -32,11 +33,15 @@ public class JwtTokenProcessorImpl implements JwtTokenProcessor {
     
     private final JwtDecoder jwtDecoder;
     private final ObjectMapper objectMapper;
+    private final String resourceId;
 
     @Autowired
-    public JwtTokenProcessorImpl(@Lazy JwtDecoder jwtDecoder) {
+    public JwtTokenProcessorImpl(@Lazy JwtDecoder jwtDecoder,
+                                 @Value("${jwt.auth.converter.resource-id:}") String resourceId) {
         this.jwtDecoder = jwtDecoder;
         this.objectMapper = new ObjectMapper();
+        this.resourceId = resourceId;
+        log.info("JwtTokenProcessorImpl initialized with resourceId: {}", resourceId);
     }
 
     @Override
@@ -125,7 +130,24 @@ public class JwtTokenProcessorImpl implements JwtTokenProcessor {
         // Extract resource roles from token (similar to JwtConverterImpl)
         Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
         Collection<String> resourceRoles = Set.of();
-        if (resourceAccess != null) {
+        
+        // First try to get roles from the configured resource
+        if (resourceAccess != null && resourceId != null && !resourceId.isEmpty() && resourceAccess.containsKey(resourceId)) {
+            Object resourceValue = resourceAccess.get(resourceId);
+            if (resourceValue instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> resource = (Map<String, Object>) resourceValue;
+                if (resource.containsKey("roles")) {
+                    @SuppressWarnings("unchecked")
+                    List<String> roles = (List<String>) resource.get("roles");
+                    resourceRoles = roles;
+                    log.info("Found roles from configured resource '{}': {}", resourceId, roles);
+                }
+            }
+        }
+        
+        // If no specific resource roles found, fall back to checking all resources
+        if (resourceRoles.isEmpty() && resourceAccess != null) {
             for (Map.Entry<String, Object> entry : resourceAccess.entrySet()) {
                 Object resourceValue = entry.getValue();
                 if (resourceValue instanceof Map) {
@@ -136,6 +158,7 @@ public class JwtTokenProcessorImpl implements JwtTokenProcessor {
                         List<String> roles = (List<String>) resource.get("roles");
                         if (resourceRoles.isEmpty()) {
                             resourceRoles = roles;
+                            log.info("Found roles from resource '{}': {}", entry.getKey(), roles);
                         } else {
                             resourceRoles = Stream.concat(resourceRoles.stream(), roles.stream())
                                     .collect(Collectors.toList());
