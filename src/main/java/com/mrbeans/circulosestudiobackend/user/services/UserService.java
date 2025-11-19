@@ -16,4 +16,5 @@ public interface UserService {
     UserResponseDto findById(UUID id);
     List<UserResponseDto> getAllStudents();
     List<UserResponseDto> getAllTutors();
+    UserResponseDto findByEmail(String email);
 }

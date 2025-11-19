@@ -1,5 +1,6 @@
 package com.mrbeans.circulosestudiobackend.auth.controller;
 
+import com.mrbeans.circulosestudiobackend.auth.dtos.UserInfoResponse;
 import com.mrbeans.circulosestudiobackend.auth.service.JwtTokenProcessor;
 import com.mrbeans.circulosestudiobackend.auth.service.TokenExtractor;
 import com.mrbeans.circulosestudiobackend.common.dto.SuccessResponse;
@@ -8,6 +9,8 @@ import com.mrbeans.circulosestudiobackend.keycloak.annotations.Scopes;
 import com.mrbeans.circulosestudiobackend.keycloak.dtos.UserInfoDTO;
 import com.mrbeans.circulosestudiobackend.keycloak.service.KeycloakService;
 import com.mrbeans.circulosestudiobackend.user.repositories.IUserRepository;
+import com.mrbeans.circulosestudiobackend.user.services.UserService;
+import com.mrbeans.circulosestudiobackend.user.dtos.UserResponseDto;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -32,16 +35,19 @@ public class AuthController {
     private final TokenExtractor tokenExtractor;
     private final KeycloakService keycloakService;
     private final IUserRepository userRepository;
+    private final UserService userService;
 
     @Autowired
     public AuthController(JwtTokenProcessor jwtTokenProcessor,
                           TokenExtractor tokenExtractor,
                           KeycloakService keycloakService,
-                          IUserRepository userRepository) {
+                          IUserRepository userRepository,
+                          UserService userService) {
         this.jwtTokenProcessor = jwtTokenProcessor;
         this.tokenExtractor = tokenExtractor;
         this.keycloakService = keycloakService;
         this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     @PublicEndpoint
@@ -81,42 +87,61 @@ public class AuthController {
 
     @Scopes(name = "me")
     @GetMapping("/me")
-    public UserInfoDTO me(@RequestHeader(value = "Authorization", required = false) String accessToken,
+    public ResponseEntity<UserInfoResponse> me(@RequestHeader(value = "Authorization", required = false) String accessToken,
                           HttpServletRequest request) {
         
-        // Use TokenExtractor to get token with priority order
-        TokenExtractor.TokenExtractionResult extractionResult = tokenExtractor.extractTokenWithPriority(request);
-        
-        // If token is found in Authorization header or cookies
-        if (extractionResult.hasToken()) {
-            String token = extractionResult.getToken().get();
-            log.info("Using token from {}", extractionResult.getSource().getDescription());
-            log.info("Token: {}", jwtTokenProcessor.maskToken(token));
+        try {
+            // Use TokenExtractor to get token with priority order
+            TokenExtractor.TokenExtractionResult extractionResult = tokenExtractor.extractTokenWithPriority(request);
             
-            // Use KeycloakService to extract user information including permissions
-            return keycloakService.extractUserInfo(token);
+            String email = null;
+            String token = null;
+            
+            // If token is found in Authorization header or cookies
+            if (extractionResult.hasToken()) {
+                token = extractionResult.getToken().get();
+                log.info("Using token from {}", extractionResult.getSource().getDescription());
+                log.info("Token: {}", jwtTokenProcessor.maskToken(token));
+                
+                // Extract email from token using JwtTokenProcessor
+                email = jwtTokenProcessor.extractEmailFromToken(token);
+            }
+            // If authentication is found in SecurityContext
+            else if (extractionResult.hasAuthentication()) {
+                Authentication authentication = extractionResult.getAuthentication().get();
+                email = authentication.getName();
+                log.info("Using authentication from SecurityContext for user: {}", email);
+            }
+            
+            if (email == null) {
+                log.error("No email could be extracted from token or authentication");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            
+            // Search for user in local database using UserService
+            UserResponseDto userDto;
+            try {
+                userDto = userService.findByEmail(email);
+            } catch (Exception e) {
+                log.error("User not found in local database with email: {}", email);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+            
+            // Build UserInfoResponse with combined information
+            UserInfoResponse response = new UserInfoResponse();
+            response.setId(userDto.getId().toString());
+            response.setNombreCompleto(userDto.getNombre());
+            response.setEmail(userDto.getEmail());
+            response.setImage(userDto.getImageUrl());
+            response.setActive(userDto.isActive());
+            response.setRole(userDto.getRoleName());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("Error processing /me endpoint: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-        
-        // If authentication is found in SecurityContext
-        if (extractionResult.hasAuthentication()) {
-            Authentication authentication = extractionResult.getAuthentication().get();
-            
-            // Create a UserInfoDTO from the authenticated user
-            String email = authentication.getName();
-            String username = authentication.getName(); // Using email as username fallback
-            String id = authentication.getName(); // Using email as ID fallback
-            
-            // Get authorities/permissions from authentication
-            List<String> permisos = authentication.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.toList());
-            
-            log.info("Using authentication from SecurityContext for user: {}", email);
-            return new UserInfoDTO(id, username, email, permisos);
-        }
-        
-        log.error("No authentication token found in header, cookies, or SecurityContext");
-        return null;
     }
 
     @GetMapping("/logout")
