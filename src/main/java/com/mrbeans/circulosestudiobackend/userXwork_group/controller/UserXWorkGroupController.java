@@ -118,21 +118,15 @@ public class UserXWorkGroupController {
 
     @GetMapping("/alumnos")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getAllStudentsWithWorkgroups(
+    public ResponseEntity<SuccessResponse<UserCountResponseDto>> getAllStudentsWithWorkgroups(
             @RequestParam(required = false) UUID workGroupId
     ) {
-        List<UserResponseWorkGroupDto> alumnos;
-        
-        if (workGroupId != null) {
-            alumnos = userXWorkGroupService.getAllStudentsByWorkGroupId(workGroupId);
-        } else {
-            alumnos = userXWorkGroupService.getAllAlumnosWithWorkgroups();
-        }
+        UserCountResponseDto alumnosWithCount = userXWorkGroupService.getAllStudentsWithCount(workGroupId);
 
-        SuccessResponse<List<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
+        SuccessResponse<UserCountResponseDto> response = new SuccessResponse<>(
                 HttpStatus.OK.value(),
                 "Alumnos obtenidos",
-                alumnos
+                alumnosWithCount
         );
         return ResponseEntity.ok(response);
     }
@@ -158,21 +152,15 @@ public class UserXWorkGroupController {
 
     @GetMapping("/tutores")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getAllTutorsWithWorkgroups(
+    public ResponseEntity<SuccessResponse<UserCountResponseDto>> getAllTutorsWithWorkgroups(
             @RequestParam(required = false) UUID workGroupId
     ) {
-        List<UserResponseWorkGroupDto> tutores;
-        
-        if (workGroupId != null) {
-            tutores = userXWorkGroupService.getAllTutorsByWorkGroupId(workGroupId);
-        } else {
-            tutores = userXWorkGroupService.getAllTutorsWithWorkgroups();
-        }
+        UserCountResponseDto tutoresWithCount = userXWorkGroupService.getAllTutorsWithCount(workGroupId);
 
-        SuccessResponse<List<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
+        SuccessResponse<UserCountResponseDto> response = new SuccessResponse<>(
                 HttpStatus.OK.value(),
                 "Tutores obtenidos",
-                tutores
+                tutoresWithCount
         );
         return ResponseEntity.ok(response);
     }
@@ -207,5 +195,18 @@ public class UserXWorkGroupController {
                 response
         );
         return ResponseEntity.ok(successResponse);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/courses/summary")
+    public ResponseEntity<SuccessResponse<List<CourseSummaryDto>>> getAllCoursesWithUserCounts() {
+        List<CourseSummaryDto> courses = userXWorkGroupService.getAllCoursesWithUserCounts();
+        
+        SuccessResponse<List<CourseSummaryDto>> response = new SuccessResponse<>(
+                HttpStatus.OK.value(),
+                "Resumen de todos los cursos con cantidad de alumnos y tutores",
+                courses
+        );
+        return ResponseEntity.ok(response);
     }
 }
