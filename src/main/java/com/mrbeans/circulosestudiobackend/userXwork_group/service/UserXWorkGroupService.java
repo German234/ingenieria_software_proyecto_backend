@@ -37,4 +37,10 @@ public interface UserXWorkGroupService {
     
     PaginationResponse<UserResponseWorkGroupDto> getTutorsWithPagination(UUID workGroupId, Pageable pageable);
 
+    List<CourseSummaryDto> getAllCoursesWithUserCounts();
+
+    UserCountResponseDto getAllStudentsWithCount(UUID workGroupId);
+
+    UserCountResponseDto getAllTutorsWithCount(UUID workGroupId);
+
 }
