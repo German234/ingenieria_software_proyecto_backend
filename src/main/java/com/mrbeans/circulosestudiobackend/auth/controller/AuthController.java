@@ -1,54 +1,188 @@
 package com.mrbeans.circulosestudiobackend.auth.controller;
 
-import com.mrbeans.circulosestudiobackend.auth.dtos.AuthRequest;
-import com.mrbeans.circulosestudiobackend.auth.dtos.AuthResponse;
-import com.mrbeans.circulosestudiobackend.auth.dtos.UserInfoDto;
+import com.mrbeans.circulosestudiobackend.auth.dtos.UserInfoResponse;
+import com.mrbeans.circulosestudiobackend.auth.service.JwtTokenProcessor;
+import com.mrbeans.circulosestudiobackend.auth.service.TokenExtractor;
 import com.mrbeans.circulosestudiobackend.common.dto.SuccessResponse;
-import com.mrbeans.circulosestudiobackend.security.CustomUserPrincipal;
-import com.mrbeans.circulosestudiobackend.security.JwtTokenProvider;
-import jakarta.validation.Valid;
+import com.mrbeans.circulosestudiobackend.keycloak.annotations.PublicEndpoint;
+import com.mrbeans.circulosestudiobackend.keycloak.annotations.Scopes;
+import com.mrbeans.circulosestudiobackend.keycloak.dtos.UserInfoDTO;
+import com.mrbeans.circulosestudiobackend.keycloak.service.KeycloakService;
+import com.mrbeans.circulosestudiobackend.user.repositories.IUserRepository;
+import com.mrbeans.circulosestudiobackend.user.services.UserService;
+import com.mrbeans.circulosestudiobackend.user.dtos.UserResponseDto;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    @Autowired
-    private AuthenticationManager authManager;
+    private final JwtTokenProcessor jwtTokenProcessor;
+    private final TokenExtractor tokenExtractor;
+    private final KeycloakService keycloakService;
+    private final IUserRepository userRepository;
+    private final UserService userService;
 
     @Autowired
-    private JwtTokenProvider tokenProvider;
+    public AuthController(JwtTokenProcessor jwtTokenProcessor,
+                          TokenExtractor tokenExtractor,
+                          KeycloakService keycloakService,
+                          IUserRepository userRepository,
+                          UserService userService) {
+        this.jwtTokenProcessor = jwtTokenProcessor;
+        this.tokenExtractor = tokenExtractor;
+        this.keycloakService = keycloakService;
+        this.userRepository = userRepository;
+        this.userService = userService;
+    }
 
+    @PublicEndpoint
+    @GetMapping("/login")
+    public ResponseEntity<SuccessResponse<String>> login() {
+        String authorizationUrl = keycloakService.generateAuthorizationUrl();
+        return ResponseEntity.ok().body(new SuccessResponse<String>("Authorization URL generated successfully", authorizationUrl));
+    }
 
-    @PostMapping("/login")
-    public ResponseEntity<SuccessResponse<AuthResponse>> login(@Valid @RequestBody AuthRequest req) {
-        Authentication auth = authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
-        );
+    @PublicEndpoint
+    @Scopes(name = "offline_access")
+    @GetMapping("/callback")
+    public ResponseEntity<?> callback(@RequestParam("code") String code, HttpServletResponse resp) {
+        // Exchange authorization code for tokens using KeycloakService
+        ResponseEntity<com.mrbeans.circulosestudiobackend.keycloak.dtos.KeycloakTokenResponse> tokenResponse =
+            keycloakService.exchangeCodeForTokens(code, resp);
 
-        CustomUserPrincipal principal = (CustomUserPrincipal) auth.getPrincipal();
-        String jwt = tokenProvider.generateToken(auth);
+        if (tokenResponse.getStatusCode().is2xxSuccessful() && tokenResponse.getBody() != null) {
+            String accessToken = tokenResponse.getBody().getAccessToken();
+            
+            // Extract user email from JWT token using JwtTokenProcessor
+            String email = jwtTokenProcessor.extractEmailFromToken(accessToken);
 
-        UserInfoDto userInfo = new UserInfoDto(
-                principal.getId(),
-                principal.getName(),
-                principal.getEmail(),
-                principal.getRoleName(),
-                principal.getImageUrl(),
-                principal.isActive()
-        );
+            // Validate if user exists in local database
+            if (email == null || !userRepository.existsByEmail(email)) {
+                log.info("User not found with email {}", email);
+                log.info("Emails existing in the system: {}", userRepository.findAll().stream().map(u -> u.getEmail()).collect(Collectors.toList()));
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Usuario no registrado en el sistema");
+            }
 
-        AuthResponse resp = new AuthResponse(
-                jwt,
-                userInfo
-        );
+            Map<String, String> responseBody = Map.of("data", "Login exitoso");
+            return ResponseEntity.ok().body(responseBody);
+        } else {
+            return ResponseEntity.status(tokenResponse.getStatusCode()).body("Error al obtener token");
+        }
+    }
 
-        SuccessResponse<AuthResponse> successResponse = new SuccessResponse<>(HttpStatus.OK.value(),"Inicio de sesion correcto", resp);
-        return ResponseEntity.ok(successResponse);
+    @Scopes(name = "me")
+    @GetMapping("/me")
+    public ResponseEntity<UserInfoResponse> me(@RequestHeader(value = "Authorization", required = false) String accessToken,
+                          HttpServletRequest request) {
+        
+        try {
+            // Use TokenExtractor to get token with priority order
+            TokenExtractor.TokenExtractionResult extractionResult = tokenExtractor.extractTokenWithPriority(request);
+            
+            String email = null;
+            String token = null;
+            
+            // If token is found in Authorization header or cookies
+            if (extractionResult.hasToken()) {
+                token = extractionResult.getToken().get();
+                log.info("Using token from {}", extractionResult.getSource().getDescription());
+                log.info("Token: {}", jwtTokenProcessor.maskToken(token));
+                
+                // Extract email from token using JwtTokenProcessor
+                email = jwtTokenProcessor.extractEmailFromToken(token);
+            }
+            // If authentication is found in SecurityContext
+            else if (extractionResult.hasAuthentication()) {
+                Authentication authentication = extractionResult.getAuthentication().get();
+                email = authentication.getName();
+                log.info("Using authentication from SecurityContext for user: {}", email);
+            }
+            
+            if (email == null) {
+                log.error("No email could be extracted from token or authentication");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            
+            // Search for user in local database using UserService
+            UserResponseDto userDto;
+            try {
+                userDto = userService.findByEmail(email);
+            } catch (Exception e) {
+                log.error("User not found in local database with email: {}", email);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+            
+            // Build UserInfoResponse with combined information
+            UserInfoResponse response = new UserInfoResponse();
+            response.setId(userDto.getId().toString());
+            response.setNombreCompleto(userDto.getNombre());
+            response.setEmail(userDto.getEmail());
+            response.setImage(userDto.getImageUrl());
+            response.setActive(userDto.isActive());
+            response.setRole(userDto.getRoleName());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("Error processing /me endpoint: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/logout")
+    @PublicEndpoint
+    @Scopes(name = "offline_access")
+    public ResponseEntity<String> keycloakLogout(
+            HttpServletRequest req,
+            HttpServletResponse response
+    ) {
+        try {
+            // Extract refresh token from cookies
+            String refreshToken = extractRefreshTokenFromCookies(req)
+                    .orElseThrow(() -> new RuntimeException("No refresh token found in cookies"));
+            
+            log.info("Logging out with refresh token: {}", jwtTokenProcessor.maskToken(refreshToken));
+            
+            // Use KeycloakService to handle logout
+            ResponseEntity<String> logoutResponse = keycloakService.logout(refreshToken);
+            
+            // Clear cookies by setting them with max-age=0
+            response.addHeader("Set-Cookie", "access_token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+            response.addHeader("Set-Cookie", "refresh_token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+            
+            return logoutResponse;
+        } catch (Exception e) {
+            log.error("Error during logout: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to logout from Keycloak");
+        }
+    }
+
+    /**
+     * Extract refresh token from cookies
+     */
+    private java.util.Optional<String> extractRefreshTokenFromCookies(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            return java.util.Arrays.stream(request.getCookies())
+                    .filter(cookie -> "refresh_token".equals(cookie.getName()))
+                    .map(jakarta.servlet.http.Cookie::getValue)
+                    .findFirst();
+        }
+        return java.util.Optional.empty();
     }
 }

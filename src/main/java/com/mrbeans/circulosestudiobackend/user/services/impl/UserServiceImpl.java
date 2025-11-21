@@ -126,6 +126,15 @@ public class UserServiceImpl implements UserService {
         userRepository.deleteById(id);
     }
 
+    @Override
+    public UserResponseDto findByEmail(String email) {
+        UserEntity user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new GenericException("Usuario no encontrado con el email: " + email);
+        }
+        return toDto(user);
+    }
+
     private UserResponseDto toDto(UserEntity user) {
         UserResponseDto dto = new UserResponseDto();
         dto.setId(user.getId());
