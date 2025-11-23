@@ -7,7 +7,7 @@ import lombok.Data;
 import java.util.UUID;
 
 @Data
-public class CourseSummaryDto {
+public class CourseWithStatisticsDto {
 
     @JsonProperty("_id")
     private UUID id;
@@ -24,9 +24,6 @@ public class CourseSummaryDto {
     @JsonProperty("estado")
     private CourseStatus status;
 
-    @JsonProperty("cantidadAlumnos")
-    private Integer cantidadAlumnos;
-
-    @JsonProperty("cantidadTutores")
-    private Integer cantidadTutores;
+    @JsonProperty("cantidadInscripciones")
+    private Integer cantidadInscripciones;
 }

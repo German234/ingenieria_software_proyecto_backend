@@ -34,10 +34,14 @@ public interface UserXWorkGroupService {
     void updateUserWorkGroup(UUID workGroupId, UpdateUserWorkGroupDto dto);
 
     PaginationResponse<UserResponseWorkGroupDto> getAlumnosWithPagination(UUID workGroupId, Pageable pageable);
-    
+
     PaginationResponse<UserResponseWorkGroupDto> getTutorsWithPagination(UUID workGroupId, Pageable pageable);
 
     List<CourseSummaryDto> getAllCoursesWithUserCounts();
+
+    List<CourseWithStatisticsDto> getCoursesWithStatistics(com.mrbeans.circulosestudiobackend.work_group.enums.CourseStatus status);
+
+    Long getTotalCoursesByStatus(com.mrbeans.circulosestudiobackend.work_group.enums.CourseStatus status);
 
     UserCountResponseDto getAllStudentsWithCount(UUID workGroupId);
 
