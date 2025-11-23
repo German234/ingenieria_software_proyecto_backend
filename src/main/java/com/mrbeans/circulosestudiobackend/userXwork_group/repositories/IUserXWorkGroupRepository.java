@@ -20,4 +20,23 @@ public interface IUserXWorkGroupRepository extends JpaRepository<UserXWorkGroupE
     @Query("SELECT u FROM UserXWorkGroupEntity u WHERE (:workGroupId IS NULL OR u.workGroup.id = :workGroupId) AND u.user.role.name = :roleName")
     Page<UserXWorkGroupEntity> findByWorkGroupIdAndRoleName(UUID workGroupId, String roleName, Pageable pageable);
     
+    @Query("SELECT wg.id, wg.name, wg.slug, wg.imageDocument.url, " +
+           "COUNT(CASE WHEN u.user.role.name = 'ALUMNO' THEN 1 END) as cantidadAlumnos, " +
+           "COUNT(CASE WHEN u.user.role.name = 'TUTOR' THEN 1 END) as cantidadTutores " +
+           "FROM WorkGroupEntity wg " +
+           "LEFT JOIN wg.userLinks u " +
+           "GROUP BY wg.id, wg.name, wg.slug, wg.imageDocument.url")
+    List<Object[]> findAllWorkGroupsWithUserCounts();
+
+    @Query("SELECT COUNT(DISTINCT u.user.id) FROM UserXWorkGroupEntity u WHERE u.user.role.name = 'ALUMNO'")
+    Long countAllStudents();
+
+    @Query("SELECT COUNT(DISTINCT u.user.id) FROM UserXWorkGroupEntity u WHERE u.user.role.name = 'TUTOR'")
+    Long countAllTutors();
+
+    @Query("SELECT COUNT(DISTINCT u.user.id) FROM UserXWorkGroupEntity u WHERE u.workGroup.id = :workGroupId AND u.user.role.name = 'ALUMNO'")
+    Long countStudentsByWorkGroupId(UUID workGroupId);
+
+    @Query("SELECT COUNT(DISTINCT u.user.id) FROM UserXWorkGroupEntity u WHERE u.workGroup.id = :workGroupId AND u.user.role.name = 'TUTOR'")
+    Long countTutorsByWorkGroupId(UUID workGroupId);
 }

@@ -329,4 +329,61 @@ public class UserXWorkGroupImpl implements UserXWorkGroupService {
                 page.getTotalElements()
         );
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseSummaryDto> getAllCoursesWithUserCounts() {
+        List<Object[]> results = userXWorkGroupRepository.findAllWorkGroupsWithUserCounts();
+        
+        return results.stream().map(result -> {
+            CourseSummaryDto dto = new CourseSummaryDto();
+            dto.setId((UUID) result[0]);
+            dto.setName((String) result[1]);
+            dto.setSlug((String) result[2]);
+            dto.setBackgroundImage((String) result[3]);
+            dto.setCantidadAlumnos(((Number) result[4]).intValue());
+            dto.setCantidadTutores(((Number) result[5]).intValue());
+            return dto;
+        }).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserCountResponseDto getAllStudentsWithCount(UUID workGroupId) {
+        List<UserResponseWorkGroupDto> alumnos;
+        Long total;
+        
+        if (workGroupId != null) {
+            alumnos = getAllStudentsByWorkGroupId(workGroupId);
+            total = userXWorkGroupRepository.countStudentsByWorkGroupId(workGroupId);
+        } else {
+            alumnos = getAllAlumnosWithWorkgroups();
+            total = userXWorkGroupRepository.countAllStudents();
+        }
+        
+        UserCountResponseDto response = new UserCountResponseDto();
+        response.setUsuarios(alumnos);
+        response.setTotal(total.intValue());
+        return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserCountResponseDto getAllTutorsWithCount(UUID workGroupId) {
+        List<UserResponseWorkGroupDto> tutores;
+        Long total;
+        
+        if (workGroupId != null) {
+            tutores = getAllTutorsByWorkGroupId(workGroupId);
+            total = userXWorkGroupRepository.countTutorsByWorkGroupId(workGroupId);
+        } else {
+            tutores = getAllTutorsWithWorkgroups();
+            total = userXWorkGroupRepository.countAllTutors();
+        }
+        
+        UserCountResponseDto response = new UserCountResponseDto();
+        response.setUsuarios(tutores);
+        response.setTotal(total.intValue());
+        return response;
+    }
 }
