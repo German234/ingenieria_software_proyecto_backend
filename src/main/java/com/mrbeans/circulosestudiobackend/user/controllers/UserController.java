@@ -4,6 +4,7 @@ import com.mrbeans.circulosestudiobackend.common.dto.SuccessResponse;
 import com.mrbeans.circulosestudiobackend.security.CustomUserPrincipal;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserRequestDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserResponseDto;
+import com.mrbeans.circulosestudiobackend.user.dtos.UserStatisticsResponseDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserUpdateProfileDto;
 import com.mrbeans.circulosestudiobackend.user.services.UserService;
 import jakarta.validation.Valid;
@@ -13,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,8 +29,8 @@ public class UserController {
     @GetMapping
     public ResponseEntity<SuccessResponse<List<UserResponseDto>>> getUsers() {
         List<UserResponseDto> users = userService.findAll();
-        SuccessResponse<List<UserResponseDto>> resp =
-                new SuccessResponse<>(HttpStatus.OK.value(),"Usuarios obtenidos correctamente", users);
+        SuccessResponse<List<UserResponseDto>> resp
+                = new SuccessResponse<>(HttpStatus.OK.value(), "Usuarios obtenidos correctamente", users);
         return ResponseEntity.ok(resp);
     }
 
@@ -49,7 +51,6 @@ public class UserController {
 //                new SuccessResponse<>(HttpStatus.OK.value(),"Tutores obtenidos correctamente", users);
 //        return ResponseEntity.ok(resp);
 //    }
-
 //    @GetMapping("/{id}")
 //    public ResponseEntity<SuccessResponse<UserResponseDto>> getUserById(
 //            @PathVariable UUID id) {
@@ -58,14 +59,13 @@ public class UserController {
 //                new SuccessResponse<>(HttpStatus.OK.value(),"Usuario encontrado", user);
 //        return ResponseEntity.ok(resp);
 //    }
-
     @PostMapping
 //    @PreAuthorize("hasAnyRole('ADMIN', 'TUTOR')")
     public ResponseEntity<SuccessResponse<Void>> createUser(
             @Valid @RequestBody UserRequestDto dto) {
         userService.createUser(dto);
-        SuccessResponse<Void> resp =
-                new SuccessResponse<>(HttpStatus.CREATED.value(),"Usuario creado exitosamente", null);
+        SuccessResponse<Void> resp
+                = new SuccessResponse<>(HttpStatus.CREATED.value(), "Usuario creado exitosamente", null);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(resp);
@@ -96,8 +96,31 @@ public class UserController {
                     .body(new SuccessResponse<>(HttpStatus.FORBIDDEN.value(), "No puedes eliminar tu propio usuario", null));
         }
         userService.deleteUser(id);
-        SuccessResponse<Void> resp =
-                new SuccessResponse<>(HttpStatus.OK.value(),"Usuario eliminado correctamente", null);
+        SuccessResponse<Void> resp
+                = new SuccessResponse<>(HttpStatus.OK.value(), "Usuario eliminado correctamente", null);
+        return ResponseEntity.ok(resp);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/statistics")
+    public ResponseEntity<SuccessResponse<UserStatisticsResponseDto>> getUserStatistics(
+            @RequestParam(required = false) String lastActivityFromDate,
+            @RequestParam(required = false) String lastActivityToDate) {
+
+        LocalDate fromDate = null;
+        LocalDate toDate = null;
+
+        if (lastActivityFromDate != null && !lastActivityFromDate.trim().isEmpty()) {
+            fromDate = LocalDate.parse(lastActivityFromDate);
+        }
+
+        if (lastActivityToDate != null && !lastActivityToDate.trim().isEmpty()) {
+            toDate = LocalDate.parse(lastActivityToDate);
+        }
+
+        UserStatisticsResponseDto statistics = userService.getUserStatistics(fromDate, toDate);
+        SuccessResponse<UserStatisticsResponseDto> resp
+                = new SuccessResponse<>(HttpStatus.OK.value(), "Estadísticas de usuarios obtenidas correctamente", statistics);
         return ResponseEntity.ok(resp);
     }
 }
