@@ -3,6 +3,7 @@ package com.mrbeans.circulosestudiobackend.work_group.entity;
 import com.mrbeans.circulosestudiobackend.documents.entity.DocumentEntity;
 import com.mrbeans.circulosestudiobackend.support_material.entity.SupportMaterialEntity;
 import com.mrbeans.circulosestudiobackend.userXwork_group.entitiy.UserXWorkGroupEntity;
+import com.mrbeans.circulosestudiobackend.work_group.enums.CourseStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.UuidGenerator;
@@ -28,8 +29,12 @@ public class WorkGroupEntity {
     @JoinColumn(name = "image_document_id", nullable = false)
     private DocumentEntity imageDocument;
 
-    @Column(nullable = false, unique = true )
+    @Column(nullable = false, unique = true)
     private String slug;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CourseStatus status = CourseStatus.ACTIVE;
 
     @OneToMany(mappedBy = "workGroup", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserXWorkGroupEntity> userLinks = new ArrayList<>();
