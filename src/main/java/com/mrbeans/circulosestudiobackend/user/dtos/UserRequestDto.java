@@ -20,7 +20,6 @@ public class UserRequestDto {
     @NotBlank(message = "El password no debe estar vacío")
     private String password;
 
-    @NotNull(message = "La imagen no debe estar vacía")
     private UUID imageDocumentId;
 
     @NotBlank(message = "El nombre del rol no debe estar vacío")

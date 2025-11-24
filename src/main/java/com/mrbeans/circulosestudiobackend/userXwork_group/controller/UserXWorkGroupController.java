@@ -1,19 +1,37 @@
 package com.mrbeans.circulosestudiobackend.userXwork_group.controller;
 
-import com.mrbeans.circulosestudiobackend.common.dto.SuccessResponse;
-import com.mrbeans.circulosestudiobackend.security.CustomUserPrincipal;
-import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.*;
-import com.mrbeans.circulosestudiobackend.userXwork_group.service.UserXWorkGroupService;
-import com.mrbeans.circulosestudiobackend.work_group.dtos.WorkGroupResponseDto;
+import java.util.List;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.UUID;
+import com.mrbeans.circulosestudiobackend.common.dto.PaginationResponse;
+import com.mrbeans.circulosestudiobackend.common.dto.SuccessResponse;
+import com.mrbeans.circulosestudiobackend.security.CustomUserPrincipal;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.CourseStatisticsResponseDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.CourseSummaryDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.CourseWithStatisticsDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.CreateUserWorkGroupDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.ResponseWorkGroupDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.UpdateUserWorkGroupDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.UserCountResponseDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.UserResponseWorkGroupDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.service.UserXWorkGroupService;
+import com.mrbeans.circulosestudiobackend.work_group.dtos.WorkGroupResponseDto;
 
 @RestController
 @RequestMapping("/api/user-x-work-groups")
@@ -57,8 +75,8 @@ public class UserXWorkGroupController {
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
         UUID userId = principal.getId();
-        List<WorkGroupResponseDto> grupos =
-                userXWorkGroupService.getWorkGroupsByUserId(userId);
+        List<WorkGroupResponseDto> grupos
+                = userXWorkGroupService.getWorkGroupsByUserId(userId);
 
         SuccessResponse<List<WorkGroupResponseDto>> response = new SuccessResponse<>(
                 HttpStatus.OK.value(),
@@ -67,61 +85,36 @@ public class UserXWorkGroupController {
         );
         return ResponseEntity.ok(response);
     }
-//
-//    @GetMapping("/work-group/{workGroupId}")
-//    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getUsersByWorkGroup(
-//            @PathVariable UUID workGroupId
-//    ) {
-//        List<UserResponseWorkGroupDto> usuarios =
-//                userXWorkGroupService.getUsersByWorkGroupId(workGroupId);
-//
-//        SuccessResponse<List<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
-//                HttpStatus.OK.value(),
-//                "Usuarios encontrados en el grupo de trabajo",
-//                usuarios
-//        );
-//        return ResponseEntity.ok(response);
-//    }
-//
-//    @GetMapping("/work-group/{workGroupId}/alumnos")
-//    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getStudentsByWorkGroup(
-//            @PathVariable UUID workGroupId
-//    ) {
-//        List<UserResponseWorkGroupDto> alumnos =
-//                userXWorkGroupService.getAllStudentsByWorkGroupId(workGroupId);
-//
-//        SuccessResponse<List<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
-//                HttpStatus.OK.value(),
-//                "Estudiantes encontrados en el grupo de trabajo",
-//                alumnos
-//        );
-//        return ResponseEntity.ok(response);
-//    }
-//
-//    @GetMapping("/work-group/{workGroupId}/tutores")
-//    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getTutorsByWorkGroup(
-//            @PathVariable UUID workGroupId
-//    ) {
-//        List<UserResponseWorkGroupDto> tutores =
-//                userXWorkGroupService.getAllTutorsByWorkGroupId(workGroupId);
-//
-//        SuccessResponse<List<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
-//                HttpStatus.OK.value(),
-//                "Tutores encontrados en el grupo de trabajo",
-//                tutores
-//        );
-//        return ResponseEntity.ok(response);
-//    }
 
     @GetMapping("/alumnos")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getAllStudentsWithWorkgroups() {
-        List<UserResponseWorkGroupDto> alumnos =
-                userXWorkGroupService.getAllAlumnosWithWorkgroups();
+    public ResponseEntity<SuccessResponse<UserCountResponseDto>> getAllStudentsWithWorkgroups(
+            @RequestParam(required = false) UUID workGroupId
+    ) {
+        UserCountResponseDto alumnosWithCount = userXWorkGroupService.getAllStudentsWithCount(workGroupId);
 
-        SuccessResponse<List<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
+        SuccessResponse<UserCountResponseDto> response = new SuccessResponse<>(
                 HttpStatus.OK.value(),
-                "Todos los alumnos con grupos de trabajo obtenidos",
+                "Alumnos obtenidos",
+                alumnosWithCount
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/alumnos/paginated")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<SuccessResponse<PaginationResponse<UserResponseWorkGroupDto>>> getAlumnosWithPagination(
+            @RequestParam(required = false) UUID workGroupId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size);
+        PaginationResponse<UserResponseWorkGroupDto> alumnos
+                = userXWorkGroupService.getAlumnosWithPagination(workGroupId, pageable);
+
+        SuccessResponse<PaginationResponse<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
+                HttpStatus.OK.value(),
+                "Alumnos obtenidos con paginación",
                 alumnos
         );
         return ResponseEntity.ok(response);
@@ -129,13 +122,33 @@ public class UserXWorkGroupController {
 
     @GetMapping("/tutores")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<SuccessResponse<List<UserResponseWorkGroupDto>>> getAllTutorsWithWorkgroups() {
-        List<UserResponseWorkGroupDto> tutores =
-                userXWorkGroupService.getAllTutorsWithWorkgroups();
+    public ResponseEntity<SuccessResponse<UserCountResponseDto>> getAllTutorsWithWorkgroups(
+            @RequestParam(required = false) UUID workGroupId
+    ) {
+        UserCountResponseDto tutoresWithCount = userXWorkGroupService.getAllTutorsWithCount(workGroupId);
 
-        SuccessResponse<List<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
+        SuccessResponse<UserCountResponseDto> response = new SuccessResponse<>(
                 HttpStatus.OK.value(),
-                "Todos los tutores con grupos de trabajo obtenidos",
+                "Tutores obtenidos",
+                tutoresWithCount
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/tutores/paginated")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<SuccessResponse<PaginationResponse<UserResponseWorkGroupDto>>> getTutorsWithPagination(
+            @RequestParam(required = false) UUID workGroupId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size);
+        PaginationResponse<UserResponseWorkGroupDto> tutores
+                = userXWorkGroupService.getTutorsWithPagination(workGroupId, pageable);
+
+        SuccessResponse<PaginationResponse<UserResponseWorkGroupDto>> response = new SuccessResponse<>(
+                HttpStatus.OK.value(),
+                "Tutores obtenidos con paginación",
                 tutores
         );
         return ResponseEntity.ok(response);
@@ -149,6 +162,52 @@ public class UserXWorkGroupController {
         SuccessResponse<ResponseWorkGroupDto> successResponse = new SuccessResponse<>(
                 HttpStatus.OK.value(),
                 "Grupo de trabajo encontrado",
+                response
+        );
+        return ResponseEntity.ok(successResponse);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/courses/summary")
+    public ResponseEntity<SuccessResponse<List<CourseSummaryDto>>> getAllCoursesWithUserCounts() {
+        List<CourseSummaryDto> courses = userXWorkGroupService.getAllCoursesWithUserCounts();
+
+        SuccessResponse<List<CourseSummaryDto>> response = new SuccessResponse<>(
+                HttpStatus.OK.value(),
+                "Resumen de todos los cursos con cantidad de alumnos y tutores",
+                courses
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/courses/statistics")
+    public ResponseEntity<SuccessResponse<CourseStatisticsResponseDto>> getCoursesWithStatistics(
+            @RequestParam(required = false) String status
+    ) {
+        com.mrbeans.circulosestudiobackend.work_group.enums.CourseStatus courseStatus = null;
+        if (status != null) {
+            try {
+                courseStatus = com.mrbeans.circulosestudiobackend.work_group.enums.CourseStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new com.mrbeans.circulosestudiobackend.common.exception.GenericException("Estado inválido. Los valores válidos son: ACTIVE, PAUSED, FINISHED");
+            }
+        }
+
+        List<CourseWithStatisticsDto> courses = userXWorkGroupService.getCoursesWithStatistics(courseStatus);
+        Long totalActive = userXWorkGroupService.getTotalCoursesByStatus(com.mrbeans.circulosestudiobackend.work_group.enums.CourseStatus.ACTIVE);
+
+        // If a specific status is requested, count courses by that status, otherwise count all active courses
+        Long totalCoursesByStatus = (courseStatus != null)
+                ? userXWorkGroupService.getTotalCoursesByStatus(courseStatus) : totalActive;
+
+        CourseStatisticsResponseDto response = new CourseStatisticsResponseDto();
+        response.setTotalActiveCourses(totalCoursesByStatus);
+        response.setCourses(courses);
+
+        SuccessResponse<CourseStatisticsResponseDto> successResponse = new SuccessResponse<>(
+                HttpStatus.OK.value(),
+                "Estadísticas de cursos obtenidas exitosamente",
                 response
         );
         return ResponseEntity.ok(successResponse);

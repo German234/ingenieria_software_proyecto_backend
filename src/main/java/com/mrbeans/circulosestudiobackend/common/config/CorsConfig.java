@@ -1,24 +1,21 @@
 package com.mrbeans.circulosestudiobackend.common.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+@Slf4j
 @Configuration
-public class CorsConfig implements WebMvcConfigurer {
+public class CorsConfig {
     private final CorsProperties props;
 
     public CorsConfig(CorsProperties props) {
         this.props = props;
-    }
-
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins(props.getAllowedOrigins().toArray(new String[0]))
-                .allowedMethods(props.getAllowedMethods().toArray(new String[0]))
-                .allowedHeaders(props.getAllowedHeaders().toArray(new String[0]))
-                .allowCredentials(props.isAllowCredentials())
-                .maxAge(3600);
+        // Log the CORS configuration on startup
+        log.info("CORS Configuration - Allowed Origins: {}", props.getAllowedOrigins());
+        log.info("CORS Configuration - Allowed Methods: {}", props.getAllowedMethods());
+        log.info("CORS Configuration - Allowed Headers: {}", props.getAllowedHeaders());
+        log.info("CORS Configuration - Allow Credentials: {}", props.isAllowCredentials());
+        log.info("CORS Configuration - Max Age: {} seconds", props.getMaxAge());
+        log.info("CORS is now configured through SecurityConfig and CorsFilter for proper integration with Spring Security");
     }
 }

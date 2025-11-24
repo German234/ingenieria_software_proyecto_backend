@@ -1,6 +1,6 @@
-
 package com.mrbeans.circulosestudiobackend.userXwork_group.service.Impl;
 
+import com.mrbeans.circulosestudiobackend.common.dto.PaginationResponse;
 import com.mrbeans.circulosestudiobackend.common.exception.GenericException;
 import com.mrbeans.circulosestudiobackend.documents_x_support_material.dto.ResponseSupportMaterialDto;
 import com.mrbeans.circulosestudiobackend.documents_x_support_material.service.DocumentXSupportMaterialService;
@@ -17,6 +17,8 @@ import com.mrbeans.circulosestudiobackend.work_group.entity.WorkGroupEntity;
 import com.mrbeans.circulosestudiobackend.work_group.repositories.IWorkGroupsRepository;
 import com.mrbeans.circulosestudiobackend.work_group.service.WorkGroupService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -134,9 +136,6 @@ public class UserXWorkGroupImpl implements UserXWorkGroupService {
         var dtos = userXWorkGroupRepository.findAllByUserId(userId).stream()
                 .map(this::toWorkGroupDto)
                 .toList();
-        if (dtos.isEmpty()) {
-            throw new GenericException("Ningún grupo de trabajo encontrado para este usuario");
-        }
         return dtos;
     }
 
@@ -240,8 +239,8 @@ public class UserXWorkGroupImpl implements UserXWorkGroupService {
                 })
                 .toList();
 
-        List<ResponseSupportMaterialDto> supportMaterials =
-                documentXSupportMaterialService.getSupportMaterialsByWorkgroupId(wgId);
+        List<ResponseSupportMaterialDto> supportMaterials
+                = documentXSupportMaterialService.getSupportMaterialsByWorkgroupId(wgId);
 
         ResponseWorkGroupDto response = new ResponseWorkGroupDto();
         response.setId(wgDto.getId());
@@ -277,5 +276,135 @@ public class UserXWorkGroupImpl implements UserXWorkGroupService {
         dto.setSlug(wg.getSlug());
         dto.setBackgroundImage(wg.getImageDocument().getUrl());
         return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginationResponse<UserResponseWorkGroupDto> getAlumnosWithPagination(UUID workGroupId, Pageable pageable) {
+        Page<UserEntity> page;
+
+        if (workGroupId == null) {
+            page = userRepository.findByRoleName("ALUMNO", pageable);
+        } else {
+            Page<UserXWorkGroupEntity> linkPage = userXWorkGroupRepository.findByWorkGroupIdAndRoleName(workGroupId, "ALUMNO", pageable);
+            page = linkPage.map(UserXWorkGroupEntity::getUser);
+        }
+
+        List<UserResponseWorkGroupDto> content = page.getContent().stream()
+                .map(this::toDto)
+                .toList();
+
+        return new PaginationResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginationResponse<UserResponseWorkGroupDto> getTutorsWithPagination(UUID workGroupId, Pageable pageable) {
+        Page<UserEntity> page;
+
+        if (workGroupId == null) {
+            page = userRepository.findByRoleName("TUTOR", pageable);
+        } else {
+            Page<UserXWorkGroupEntity> linkPage = userXWorkGroupRepository.findByWorkGroupIdAndRoleName(workGroupId, "TUTOR", pageable);
+            page = linkPage.map(UserXWorkGroupEntity::getUser);
+        }
+
+        List<UserResponseWorkGroupDto> content = page.getContent().stream()
+                .map(this::toDto)
+                .toList();
+
+        return new PaginationResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseSummaryDto> getAllCoursesWithUserCounts() {
+        List<Object[]> results = userXWorkGroupRepository.findAllWorkGroupsWithUserCounts();
+
+        return results.stream().map(result -> {
+            CourseSummaryDto dto = new CourseSummaryDto();
+            dto.setId((UUID) result[0]);
+            dto.setName((String) result[1]);
+            dto.setSlug((String) result[2]);
+            dto.setBackgroundImage((String) result[3]);
+            dto.setCantidadAlumnos(((Number) result[4]).intValue());
+            dto.setCantidadTutores(((Number) result[5]).intValue());
+            // Default status to ACTIVE for existing records
+            dto.setStatus(com.mrbeans.circulosestudiobackend.work_group.enums.CourseStatus.ACTIVE);
+            return dto;
+        }).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseWithStatisticsDto> getCoursesWithStatistics(com.mrbeans.circulosestudiobackend.work_group.enums.CourseStatus status) {
+        List<Object[]> results = userXWorkGroupRepository.findCoursesWithStatisticsByStatus(status);
+
+        return results.stream().map(result -> {
+            CourseWithStatisticsDto dto = new CourseWithStatisticsDto();
+            dto.setId((UUID) result[0]);
+            dto.setName((String) result[1]);
+            dto.setSlug((String) result[2]);
+            dto.setBackgroundImage((String) result[3]);
+            dto.setStatus((com.mrbeans.circulosestudiobackend.work_group.enums.CourseStatus) result[4]);
+            dto.setCantidadInscripciones(((Number) result[5]).intValue());
+            return dto;
+        }).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getTotalCoursesByStatus(com.mrbeans.circulosestudiobackend.work_group.enums.CourseStatus status) {
+        return userXWorkGroupRepository.countCoursesByStatus(status);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserCountResponseDto getAllStudentsWithCount(UUID workGroupId) {
+        List<UserResponseWorkGroupDto> alumnos;
+        Long total;
+
+        if (workGroupId != null) {
+            alumnos = getAllStudentsByWorkGroupId(workGroupId);
+            total = userXWorkGroupRepository.countStudentsByWorkGroupId(workGroupId);
+        } else {
+            alumnos = getAllAlumnosWithWorkgroups();
+            total = userXWorkGroupRepository.countAllStudents();
+        }
+
+        UserCountResponseDto response = new UserCountResponseDto();
+        response.setUsuarios(alumnos);
+        response.setTotal(total.intValue());
+        return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserCountResponseDto getAllTutorsWithCount(UUID workGroupId) {
+        List<UserResponseWorkGroupDto> tutores;
+        Long total;
+
+        if (workGroupId != null) {
+            tutores = getAllTutorsByWorkGroupId(workGroupId);
+            total = userXWorkGroupRepository.countTutorsByWorkGroupId(workGroupId);
+        } else {
+            tutores = getAllTutorsWithWorkgroups();
+            total = userXWorkGroupRepository.countAllTutors();
+        }
+
+        UserCountResponseDto response = new UserCountResponseDto();
+        response.setUsuarios(tutores);
+        response.setTotal(total.intValue());
+        return response;
     }
 }
