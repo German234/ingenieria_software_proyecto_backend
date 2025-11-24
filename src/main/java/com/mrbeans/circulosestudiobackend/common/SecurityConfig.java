@@ -67,9 +67,12 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
+                // Note: CorsFilter is automatically registered with @Order(Ordered.HIGHEST_PRECEDENCE)
+                // so it runs before all other filters including authentication filters
                 .addFilterBefore(publicEndpointFilter, BearerTokenAuthenticationFilter.class)
                 .addFilterBefore(cookieTokenFilter, BearerTokenAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
+                        // OPTIONS requests are handled by CorsFilter, but we also permit them here
                         .requestMatchers(mvcMatcherBuilder.pattern(HttpMethod.OPTIONS, "/**")).permitAll()
                         .requestMatchers(publicEndpointsRegistry.getPublicEndpoints().toArray(new String[0]))
                         .permitAll()
@@ -116,17 +119,36 @@ public class SecurityConfig {
         configuration.setAllowedMethods(allowedMethods);
         log.info("CORS allowed methods set to: {}", allowedMethods);
         
-        // Set allowed headers
+        // Set allowed headers - include common headers and allow dynamic headers
         List<String> allowedHeaders = corsProperties.getAllowedHeaders();
-        configuration.setAllowedHeaders(allowedHeaders);
-        log.info("CORS allowed headers set to: {}", allowedHeaders);
+        if (allowedHeaders.contains("*")) {
+            // For wildcard, set common headers and allow dynamic headers
+            configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "Origin",
+                "X-Requested-With",
+                "Cache-Control",
+                "X-Auth-Token",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"
+            ));
+            configuration.setAllowCredentials(true);
+        } else {
+            configuration.setAllowedHeaders(allowedHeaders);
+        }
+        log.info("CORS allowed headers set to: {}", configuration.getAllowedHeaders());
         
         // Set allow credentials
         configuration.setAllowCredentials(corsProperties.isAllowCredentials());
         log.info("CORS allow credentials set to: {}", corsProperties.isAllowCredentials());
         
-        // Set max age
-        configuration.setMaxAge(3600L);
+        // Set exposed headers if needed
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        
+        // Set max age from properties
+        configuration.setMaxAge(corsProperties.getMaxAge());
         
         // Apply configuration to all paths
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

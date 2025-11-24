@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import com.mrbeans.circulosestudiobackend.userXwork_group.entitiy.UserXWorkGroupEntity;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 
 public interface IUserXWorkGroupRepository extends JpaRepository<UserXWorkGroupEntity, UUID> {
 
@@ -59,4 +62,21 @@ public interface IUserXWorkGroupRepository extends JpaRepository<UserXWorkGroupE
 
     @Query("SELECT COUNT(DISTINCT u.user.id) FROM UserXWorkGroupEntity u WHERE u.workGroup.id = :workGroupId AND u.user.role.name = 'TUTOR'")
     Long countTutorsByWorkGroupId(UUID workGroupId);
+
+    @Query("SELECT COUNT(DISTINCT uxwg.user.id) FROM UserXWorkGroupEntity uxwg "
+            + "JOIN uxwg.workGroup wg "
+            + "JOIN wg.userLinks tutor "
+            + "WHERE tutor.user.id = :tutorId AND tutor.user.role.name = 'TUTOR' AND uxwg.user.role.name = 'ALUMNO'")
+    Long countStudentsByTutorId(UUID tutorId);
+
+    @Query("SELECT MAX(a.date) FROM AttendanceEntity a "
+            + "JOIN a.userXWorkGroup uxwg "
+            + "WHERE uxwg.user.id = :userId")
+    LocalDate findLastActivityDateByUserId(UUID userId);
+
+    @Query("SELECT uxwg.user.id FROM UserXWorkGroupEntity uxwg "
+            + "JOIN uxwg.workGroup wg "
+            + "JOIN wg.userLinks tutor "
+            + "WHERE tutor.user.id = :tutorId AND tutor.user.role.name = 'TUTOR' AND uxwg.user.role.name = 'ALUMNO'")
+    List<UUID> findStudentIdsByTutorId(UUID tutorId);
 }

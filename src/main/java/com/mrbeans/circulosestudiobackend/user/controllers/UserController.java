@@ -1,20 +1,30 @@
 package com.mrbeans.circulosestudiobackend.user.controllers;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.mrbeans.circulosestudiobackend.common.dto.SuccessResponse;
 import com.mrbeans.circulosestudiobackend.security.CustomUserPrincipal;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserRequestDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserResponseDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserUpdateProfileDto;
 import com.mrbeans.circulosestudiobackend.user.services.UserService;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.UUID;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/users")
@@ -27,8 +37,8 @@ public class UserController {
     @GetMapping
     public ResponseEntity<SuccessResponse<List<UserResponseDto>>> getUsers() {
         List<UserResponseDto> users = userService.findAll();
-        SuccessResponse<List<UserResponseDto>> resp =
-                new SuccessResponse<>(HttpStatus.OK.value(),"Usuarios obtenidos correctamente", users);
+        SuccessResponse<List<UserResponseDto>> resp
+                = new SuccessResponse<>(HttpStatus.OK.value(), "Usuarios obtenidos correctamente", users);
         return ResponseEntity.ok(resp);
     }
 
@@ -49,7 +59,6 @@ public class UserController {
 //                new SuccessResponse<>(HttpStatus.OK.value(),"Tutores obtenidos correctamente", users);
 //        return ResponseEntity.ok(resp);
 //    }
-
 //    @GetMapping("/{id}")
 //    public ResponseEntity<SuccessResponse<UserResponseDto>> getUserById(
 //            @PathVariable UUID id) {
@@ -58,14 +67,13 @@ public class UserController {
 //                new SuccessResponse<>(HttpStatus.OK.value(),"Usuario encontrado", user);
 //        return ResponseEntity.ok(resp);
 //    }
-
     @PostMapping
 //    @PreAuthorize("hasAnyRole('ADMIN', 'TUTOR')")
     public ResponseEntity<SuccessResponse<Void>> createUser(
             @Valid @RequestBody UserRequestDto dto) {
         userService.createUser(dto);
-        SuccessResponse<Void> resp =
-                new SuccessResponse<>(HttpStatus.CREATED.value(),"Usuario creado exitosamente", null);
+        SuccessResponse<Void> resp
+                = new SuccessResponse<>(HttpStatus.CREATED.value(), "Usuario creado exitosamente", null);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(resp);
@@ -96,8 +104,33 @@ public class UserController {
                     .body(new SuccessResponse<>(HttpStatus.FORBIDDEN.value(), "No puedes eliminar tu propio usuario", null));
         }
         userService.deleteUser(id);
-        SuccessResponse<Void> resp =
-                new SuccessResponse<>(HttpStatus.OK.value(),"Usuario eliminado correctamente", null);
+        SuccessResponse<Void> resp
+                = new SuccessResponse<>(HttpStatus.OK.value(), "Usuario eliminado correctamente", null);
+        return ResponseEntity.ok(resp);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/statistics")
+    public ResponseEntity<SuccessResponse<UserStatisticsResponseDto>> getUserStatistics(
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate
+    ) {
+        LocalDate from = null;
+        LocalDate to = null;
+        
+        if (fromDate != null) {
+            from = LocalDate.parse(fromDate);
+        }
+        if (toDate != null) {
+            to = LocalDate.parse(toDate);
+        }
+        
+        UserStatisticsResponseDto statistics = userService.getUserStatistics(from, to);
+        SuccessResponse<UserStatisticsResponseDto> resp = new SuccessResponse<>(
+                HttpStatus.OK.value(),
+                "Estadísticas de usuarios obtenidas correctamente",
+                statistics
+        );
         return ResponseEntity.ok(resp);
     }
 }

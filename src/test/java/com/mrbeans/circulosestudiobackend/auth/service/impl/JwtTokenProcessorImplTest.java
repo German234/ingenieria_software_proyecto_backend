@@ -29,7 +29,7 @@ class JwtTokenProcessorImplTest {
 
     @BeforeEach
     void setUp() {
-        jwtTokenProcessor = new JwtTokenProcessorImpl(jwtDecoder);
+        jwtTokenProcessor = new JwtTokenProcessorImpl(jwtDecoder, "test-resource-id");
     }
 
     @Test

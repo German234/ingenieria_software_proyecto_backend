@@ -136,9 +136,6 @@ public class UserXWorkGroupImpl implements UserXWorkGroupService {
         var dtos = userXWorkGroupRepository.findAllByUserId(userId).stream()
                 .map(this::toWorkGroupDto)
                 .toList();
-        if (dtos.isEmpty()) {
-            throw new GenericException("Ningún grupo de trabajo encontrado para este usuario");
-        }
         return dtos;
     }
 
