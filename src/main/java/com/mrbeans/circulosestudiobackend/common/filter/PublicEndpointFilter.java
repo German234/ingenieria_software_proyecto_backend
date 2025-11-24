@@ -30,6 +30,13 @@ public class PublicEndpointFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
+        // Skip all processing for OPTIONS requests (CORS preflight)
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            log.debug("Skipping public endpoint processing for OPTIONS request");
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String path = request.getRequestURI();
         String contextPath = request.getContextPath();
         if (!contextPath.isEmpty() && path.startsWith(contextPath)) {

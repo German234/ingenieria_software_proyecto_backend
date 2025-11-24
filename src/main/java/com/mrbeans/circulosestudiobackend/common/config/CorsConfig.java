@@ -15,6 +15,7 @@ public class CorsConfig {
         log.info("CORS Configuration - Allowed Methods: {}", props.getAllowedMethods());
         log.info("CORS Configuration - Allowed Headers: {}", props.getAllowedHeaders());
         log.info("CORS Configuration - Allow Credentials: {}", props.isAllowCredentials());
-        log.info("CORS is now configured through SecurityConfig for proper integration with Spring Security");
+        log.info("CORS Configuration - Max Age: {} seconds", props.getMaxAge());
+        log.info("CORS is now configured through SecurityConfig and CorsFilter for proper integration with Spring Security");
     }
 }
