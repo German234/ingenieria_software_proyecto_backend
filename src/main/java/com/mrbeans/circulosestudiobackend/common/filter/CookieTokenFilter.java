@@ -54,6 +54,13 @@ public class CookieTokenFilter extends OncePerRequestFilter {
         String requestMethod = req.getMethod();
         String requestPath = req.getRequestURI();
 
+        // Skip all processing for OPTIONS requests (CORS preflight)
+        if ("OPTIONS".equalsIgnoreCase(requestMethod)) {
+            log.debug("Skipping authentication processing for OPTIONS request");
+            chain.doFilter(req, res);
+            return;
+        }
+
         // Log request context
         logger.info("Processing request: {} {}", requestMethod, requestPath);
 

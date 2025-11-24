@@ -9,15 +9,31 @@ app:
       - "http://localhost:3000"
       - "http://localhost:3001"
       - "http://dev.lan:3000"
+      - "https://149.56.110.16"
+      - "https://localhost:3000"
+      - "https://localhost:3001"
+      - "https://dev.lan:3000"
     allowed-methods:
       - "GET"
       - "POST"
       - "PUT"
       - "DELETE"
       - "OPTIONS"
+      - "PATCH"
+      - "HEAD"
     allowed-headers:
+      - "Authorization"
+      - "Content-Type"
+      - "Accept"
+      - "Origin"
+      - "X-Requested-With"
+      - "Cache-Control"
+      - "X-Auth-Token"
+      - "Access-Control-Request-Method"
+      - "Access-Control-Request-Headers"
       - "*"
     allow-credentials: true
+    max-age: 3600
 
 server:
   port: ${PORT:8080}
