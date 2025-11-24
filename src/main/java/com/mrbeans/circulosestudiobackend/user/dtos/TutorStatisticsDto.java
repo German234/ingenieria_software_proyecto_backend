@@ -18,7 +18,7 @@ public class TutorStatisticsDto {
     @JsonProperty("email")
     private String email;
 
-    @JsonProperty("image")
+    @JsonProperty("imageUrl")
     private String imageUrl;
 
     @JsonProperty("assignedStudentsCount")

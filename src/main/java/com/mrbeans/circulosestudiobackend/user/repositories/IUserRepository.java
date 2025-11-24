@@ -1,6 +1,9 @@
 package com.mrbeans.circulosestudiobackend.user.repositories;
 
 import com.mrbeans.circulosestudiobackend.user.entity.UserEntity;
+
+import feign.Param;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -41,4 +44,7 @@ public interface IUserRepository extends JpaRepository<UserEntity, UUID> {
             + "AND (:toDate IS NULL OR EXISTS (SELECT 1 FROM UserXWorkGroupEntity uxwg JOIN uxwg.attendances a "
             + "WHERE uxwg.user = u AND a.date <= :toDate))")
     List<UserEntity> findActiveByRoleNameWithActivityFilter(String roleName, LocalDate fromDate, LocalDate toDate);
+
+    @Query("SELECT COUNT(u) FROM UserEntity u WHERE u.createdAt >= :firstDayOfMonth AND u.createdAt <= :lastDayOfMonth")
+    Long countUsersCreatedInCurrentMonth(@Param("firstDayOfMonth") LocalDate firstDayOfMonth, @Param("lastDayOfMonth") LocalDate lastDayOfMonth);
 }

@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -21,20 +22,23 @@ public class UserEntity {
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name ="name" , nullable= false)
+    @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name ="email", nullable = false, unique = true)
+    @Column(name = "email", nullable = false, unique = true)
     private String email;
 
-    @Column(name ="password", nullable = false)
+    @Column(name = "password", nullable = false)
     private String password;
 
     @Column(name = "isActive", nullable = false)
-    private boolean isActive = false ;
+    private boolean isActive = false;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "image_document_id", nullable = true)
+    @Column(name = "createdAt", nullable = false, updatable = false)
+    private LocalDate createdAt = LocalDate.now();
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "image_document_id", nullable = false)
     private DocumentEntity imageDocument;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
