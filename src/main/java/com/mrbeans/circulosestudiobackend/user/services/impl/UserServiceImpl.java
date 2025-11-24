@@ -25,6 +25,9 @@ import com.mrbeans.circulosestudiobackend.user.repositories.IUserRepository;
 import com.mrbeans.circulosestudiobackend.user.services.UserService;
 import com.mrbeans.circulosestudiobackend.userXwork_group.repositories.IUserXWorkGroupRepository;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -98,10 +101,8 @@ public class UserServiceImpl implements UserService {
 
         user.setRole(rol);
 
-        if (dto.getImageDocumentId() != null) {
-            DocumentEntity imgDoc = documentRepository.findById(dto.getImageDocumentId()).orElseThrow(() -> new GenericException("Imagen no encontrada"));
-            user.setImageDocument(imgDoc);
-        }
+        DocumentEntity imgDoc = documentRepository.findById(dto.getImageDocumentId()).orElseThrow(() -> new GenericException("Imagen no encontrada"));
+        user.setImageDocument(imgDoc);
 
         userRepository.save(user);
     }
@@ -153,10 +154,8 @@ public class UserServiceImpl implements UserService {
         dto.setId(user.getId());
         dto.setNombre(user.getName());
         dto.setEmail(user.getEmail());
-        if (user.getImageDocument() != null) {
-            dto.setDocumentId(user.getImageDocument().getId());
-            dto.setImageUrl(user.getImageDocument().getUrl());
-        }
+        dto.setDocumentId(user.getImageDocument().getId());
+        dto.setImageUrl(user.getImageDocument().getUrl());
         dto.setRoleName(user.getRole().getName());
         dto.setActive(user.isActive());
         return dto;
@@ -192,9 +191,7 @@ public class UserServiceImpl implements UserService {
                     dto.setId(tutor.getId());
                     dto.setNombre(tutor.getName());
                     dto.setEmail(tutor.getEmail());
-                    if (tutor.getImageDocument() != null) {
-                        dto.setImageUrl(tutor.getImageDocument().getUrl());
-                    }
+                    dto.setImageUrl(tutor.getImageDocument().getUrl());
 
                     // Get assigned students count
                     Long assignedStudentsCount = userXWorkGroupRepository.countStudentsByTutorId(tutor.getId());
