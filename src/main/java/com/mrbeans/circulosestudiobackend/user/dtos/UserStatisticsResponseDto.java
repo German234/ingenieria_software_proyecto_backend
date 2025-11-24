@@ -1,9 +1,10 @@
 package com.mrbeans.circulosestudiobackend.user.dtos;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
-
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.Data;
 
 @Data
 public class UserStatisticsResponseDto {
@@ -19,6 +20,9 @@ public class UserStatisticsResponseDto {
 
     @JsonProperty("totalActiveAdministrators")
     private Long totalActiveAdministrators;
+
+    @JsonProperty("totalNewUsersThisMonth")
+    private Long totalNewUsersThisMonth;
 
     @JsonProperty("filters")
     private FilterDto filters;

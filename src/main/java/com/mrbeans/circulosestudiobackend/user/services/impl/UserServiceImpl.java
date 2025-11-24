@@ -16,6 +16,7 @@ import com.mrbeans.circulosestudiobackend.role.entity.RoleEntity;
 import com.mrbeans.circulosestudiobackend.role.services.impl.RoleServiceImpl;
 import com.mrbeans.circulosestudiobackend.user.dtos.FilterDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.TutorStatisticsDto;
+import com.mrbeans.circulosestudiobackend.user.dtos.UpdatePasswordDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserRequestDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserResponseDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserStatisticsResponseDto;
@@ -25,6 +26,9 @@ import com.mrbeans.circulosestudiobackend.user.repositories.IUserRepository;
 import com.mrbeans.circulosestudiobackend.user.services.UserService;
 import com.mrbeans.circulosestudiobackend.userXwork_group.repositories.IUserXWorkGroupRepository;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -98,10 +102,8 @@ public class UserServiceImpl implements UserService {
 
         user.setRole(rol);
 
-        if (dto.getImageDocumentId() != null) {
-            DocumentEntity imgDoc = documentRepository.findById(dto.getImageDocumentId()).orElseThrow(() -> new GenericException("Imagen no encontrada"));
-            user.setImageDocument(imgDoc);
-        }
+        DocumentEntity imgDoc = documentRepository.findById(dto.getImageDocumentId()).orElseThrow(() -> new GenericException("Imagen no encontrada"));
+        user.setImageDocument(imgDoc);
 
         userRepository.save(user);
     }
@@ -153,13 +155,59 @@ public class UserServiceImpl implements UserService {
         dto.setId(user.getId());
         dto.setNombre(user.getName());
         dto.setEmail(user.getEmail());
-        if (user.getImageDocument() != null) {
-            dto.setDocumentId(user.getImageDocument().getId());
-            dto.setImageUrl(user.getImageDocument().getUrl());
-        }
+        dto.setDocumentId(user.getImageDocument().getId());
+        dto.setImageUrl(user.getImageDocument().getUrl());
         dto.setRoleName(user.getRole().getName());
         dto.setActive(user.isActive());
         return dto;
+    }
+
+    @Override
+    public void updatePassword(UpdatePasswordDto updatePasswordDto, UUID userId, UUID authenticatedUserId) {
+        log.info("Iniciando actualización de contraseña para usuario ID: {} por usuario autenticado ID: {}",
+                userId, authenticatedUserId);
+
+        // Validar que el usuario autenticado solo pueda cambiar su propia contraseña
+        if (!userId.equals(authenticatedUserId)) {
+            log.warn("Intento de actualización de contraseña no autorizado. Usuario ID: {} intentando modificar contraseña de usuario ID: {}",
+                    authenticatedUserId, userId);
+            throw new GenericException("No tienes permiso para modificar la contraseña de otro usuario");
+        }
+
+        // Buscar usuario
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    log.warn("Usuario no encontrado para actualización de contraseña. ID: {}", userId);
+                    return new GenericException("Usuario no encontrado");
+                });
+
+        // Verificar si la cuenta está deshabilitada
+        if (!user.isActive()) {
+            log.warn("Intento de actualización de contraseña en cuenta deshabilitada. Usuario ID: {}", userId);
+            throw new GenericException("La cuenta está deshabilitada. Debes completar el flujo de registro nuevamente");
+        }
+
+        // Validar contraseña actual
+        if (!passwordEncoder.matches(updatePasswordDto.getCurrentPassword(), user.getPassword())) {
+            log.warn("Contraseña actual incorrecta para usuario ID: {}", userId);
+            throw new GenericException("La contraseña actual es incorrecta");
+        }
+
+        // Validar que la nueva contraseña sea diferente a la actual
+        if (passwordEncoder.matches(updatePasswordDto.getNewPassword(), user.getPassword())) {
+            log.warn("Intento de usar la misma contraseña para usuario ID: {}", userId);
+            throw new GenericException("La nueva contraseña debe ser diferente a la actual");
+        }
+
+        // Actualizar contraseña
+        String encodedNewPassword = passwordEncoder.encode(updatePasswordDto.getNewPassword());
+        user.setPassword(encodedNewPassword);
+
+        // Guardar cambios
+        userRepository.save(user);
+
+        log.info("Contraseña actualizada exitosamente para usuario ID: {} por usuario ID: {}",
+                userId, authenticatedUserId);
     }
 
     @Override
@@ -192,9 +240,7 @@ public class UserServiceImpl implements UserService {
                     dto.setId(tutor.getId());
                     dto.setNombre(tutor.getName());
                     dto.setEmail(tutor.getEmail());
-                    if (tutor.getImageDocument() != null) {
-                        dto.setImageUrl(tutor.getImageDocument().getUrl());
-                    }
+                    dto.setImageUrl(tutor.getImageDocument().getUrl());
 
                     // Get assigned students count
                     Long assignedStudentsCount = userXWorkGroupRepository.countStudentsByTutorId(tutor.getId());
