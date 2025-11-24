@@ -1,11 +1,8 @@
 package com.mrbeans.circulosestudiobackend.userXwork_group.controller;
 
-import com.mrbeans.circulosestudiobackend.common.dto.PaginationResponse;
-import com.mrbeans.circulosestudiobackend.common.dto.SuccessResponse;
-import com.mrbeans.circulosestudiobackend.security.CustomUserPrincipal;
-import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.*;
-import com.mrbeans.circulosestudiobackend.userXwork_group.service.UserXWorkGroupService;
-import com.mrbeans.circulosestudiobackend.work_group.dtos.WorkGroupResponseDto;
+import java.util.List;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -13,10 +10,28 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.UUID;
+import com.mrbeans.circulosestudiobackend.common.dto.PaginationResponse;
+import com.mrbeans.circulosestudiobackend.common.dto.SuccessResponse;
+import com.mrbeans.circulosestudiobackend.security.CustomUserPrincipal;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.CourseStatisticsResponseDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.CourseSummaryDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.CourseWithStatisticsDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.CreateUserWorkGroupDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.ResponseWorkGroupDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.UpdateUserWorkGroupDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.UserCountResponseDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.dtos.UserResponseWorkGroupDto;
+import com.mrbeans.circulosestudiobackend.userXwork_group.service.UserXWorkGroupService;
+import com.mrbeans.circulosestudiobackend.work_group.dtos.WorkGroupResponseDto;
 
 @RestController
 @RequestMapping("/api/user-x-work-groups")
@@ -182,8 +197,12 @@ public class UserXWorkGroupController {
         List<CourseWithStatisticsDto> courses = userXWorkGroupService.getCoursesWithStatistics(courseStatus);
         Long totalActive = userXWorkGroupService.getTotalCoursesByStatus(com.mrbeans.circulosestudiobackend.work_group.enums.CourseStatus.ACTIVE);
 
+        // If a specific status is requested, count courses by that status, otherwise count all active courses
+        Long totalCoursesByStatus = (courseStatus != null)
+                ? userXWorkGroupService.getTotalCoursesByStatus(courseStatus) : totalActive;
+
         CourseStatisticsResponseDto response = new CourseStatisticsResponseDto();
-        response.setTotalActiveCourses(totalActive);
+        response.setTotalActiveCourses(totalCoursesByStatus);
         response.setCourses(courses);
 
         SuccessResponse<CourseStatisticsResponseDto> successResponse = new SuccessResponse<>(
