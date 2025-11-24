@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mrbeans.circulosestudiobackend.common.dto.SuccessResponse;
 import com.mrbeans.circulosestudiobackend.security.CustomUserPrincipal;
-import com.mrbeans.circulosestudiobackend.user.dtos.UpdatePasswordDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserRequestDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserResponseDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserStatisticsResponseDto;
@@ -94,23 +93,6 @@ public class UserController {
         SuccessResponse<Void> resp = new SuccessResponse<>(
                 HttpStatus.OK.value(),
                 "Usuario actualizado correctamente",
-                null
-        );
-        return ResponseEntity.ok(resp);
-    }
-
-    @PutMapping("/{id}/password")
-    public ResponseEntity<SuccessResponse<Void>> updatePassword(
-            @PathVariable UUID id,
-            @Valid @RequestBody UpdatePasswordDto updatePasswordDto,
-            @AuthenticationPrincipal CustomUserPrincipal principal
-    ) {
-        UUID authenticatedUserId = principal.getId();
-        userService.updatePassword(updatePasswordDto, id, authenticatedUserId);
-
-        SuccessResponse<Void> resp = new SuccessResponse<>(
-                HttpStatus.OK.value(),
-                "Contraseña actualizada exitosamente",
                 null
         );
         return ResponseEntity.ok(resp);

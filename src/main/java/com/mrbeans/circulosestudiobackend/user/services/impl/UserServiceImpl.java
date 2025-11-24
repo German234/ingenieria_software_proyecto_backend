@@ -16,7 +16,6 @@ import com.mrbeans.circulosestudiobackend.role.entity.RoleEntity;
 import com.mrbeans.circulosestudiobackend.role.services.impl.RoleServiceImpl;
 import com.mrbeans.circulosestudiobackend.user.dtos.FilterDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.TutorStatisticsDto;
-import com.mrbeans.circulosestudiobackend.user.dtos.UpdatePasswordDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserRequestDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserResponseDto;
 import com.mrbeans.circulosestudiobackend.user.dtos.UserStatisticsResponseDto;
@@ -160,54 +159,6 @@ public class UserServiceImpl implements UserService {
         dto.setRoleName(user.getRole().getName());
         dto.setActive(user.isActive());
         return dto;
-    }
-
-    @Override
-    public void updatePassword(UpdatePasswordDto updatePasswordDto, UUID userId, UUID authenticatedUserId) {
-        log.info("Iniciando actualización de contraseña para usuario ID: {} por usuario autenticado ID: {}",
-                userId, authenticatedUserId);
-
-        // Validar que el usuario autenticado solo pueda cambiar su propia contraseña
-        if (!userId.equals(authenticatedUserId)) {
-            log.warn("Intento de actualización de contraseña no autorizado. Usuario ID: {} intentando modificar contraseña de usuario ID: {}",
-                    authenticatedUserId, userId);
-            throw new GenericException("No tienes permiso para modificar la contraseña de otro usuario");
-        }
-
-        // Buscar usuario
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> {
-                    log.warn("Usuario no encontrado para actualización de contraseña. ID: {}", userId);
-                    return new GenericException("Usuario no encontrado");
-                });
-
-        // Verificar si la cuenta está deshabilitada
-        if (!user.isActive()) {
-            log.warn("Intento de actualización de contraseña en cuenta deshabilitada. Usuario ID: {}", userId);
-            throw new GenericException("La cuenta está deshabilitada. Debes completar el flujo de registro nuevamente");
-        }
-
-        // Validar contraseña actual
-        if (!passwordEncoder.matches(updatePasswordDto.getCurrentPassword(), user.getPassword())) {
-            log.warn("Contraseña actual incorrecta para usuario ID: {}", userId);
-            throw new GenericException("La contraseña actual es incorrecta");
-        }
-
-        // Validar que la nueva contraseña sea diferente a la actual
-        if (passwordEncoder.matches(updatePasswordDto.getNewPassword(), user.getPassword())) {
-            log.warn("Intento de usar la misma contraseña para usuario ID: {}", userId);
-            throw new GenericException("La nueva contraseña debe ser diferente a la actual");
-        }
-
-        // Actualizar contraseña
-        String encodedNewPassword = passwordEncoder.encode(updatePasswordDto.getNewPassword());
-        user.setPassword(encodedNewPassword);
-
-        // Guardar cambios
-        userRepository.save(user);
-
-        log.info("Contraseña actualizada exitosamente para usuario ID: {} por usuario ID: {}",
-                userId, authenticatedUserId);
     }
 
     @Override
