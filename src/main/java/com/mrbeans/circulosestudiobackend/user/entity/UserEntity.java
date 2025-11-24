@@ -33,8 +33,8 @@ public class UserEntity {
     @Column(name = "isActive", nullable = false)
     private boolean isActive = false ;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "image_document_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "image_document_id", nullable = true)
     private DocumentEntity imageDocument;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

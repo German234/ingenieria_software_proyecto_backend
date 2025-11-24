@@ -98,8 +98,10 @@ public class UserServiceImpl implements UserService {
 
         user.setRole(rol);
 
-        DocumentEntity imgDoc = documentRepository.findById(dto.getImageDocumentId()).orElseThrow(() -> new GenericException("Imagen no encontrada"));
-        user.setImageDocument(imgDoc);
+        if (dto.getImageDocumentId() != null) {
+            DocumentEntity imgDoc = documentRepository.findById(dto.getImageDocumentId()).orElseThrow(() -> new GenericException("Imagen no encontrada"));
+            user.setImageDocument(imgDoc);
+        }
 
         userRepository.save(user);
     }
@@ -151,8 +153,10 @@ public class UserServiceImpl implements UserService {
         dto.setId(user.getId());
         dto.setNombre(user.getName());
         dto.setEmail(user.getEmail());
-        dto.setDocumentId(user.getImageDocument().getId());
-        dto.setImageUrl(user.getImageDocument().getUrl());
+        if (user.getImageDocument() != null) {
+            dto.setDocumentId(user.getImageDocument().getId());
+            dto.setImageUrl(user.getImageDocument().getUrl());
+        }
         dto.setRoleName(user.getRole().getName());
         dto.setActive(user.isActive());
         return dto;
@@ -188,7 +192,9 @@ public class UserServiceImpl implements UserService {
                     dto.setId(tutor.getId());
                     dto.setNombre(tutor.getName());
                     dto.setEmail(tutor.getEmail());
-                    dto.setImageUrl(tutor.getImageDocument().getUrl());
+                    if (tutor.getImageDocument() != null) {
+                        dto.setImageUrl(tutor.getImageDocument().getUrl());
+                    }
 
                     // Get assigned students count
                     Long assignedStudentsCount = userXWorkGroupRepository.countStudentsByTutorId(tutor.getId());
