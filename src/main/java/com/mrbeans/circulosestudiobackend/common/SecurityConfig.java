@@ -74,6 +74,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // OPTIONS requests are handled by CorsFilter, but we also permit them here
                         .requestMatchers(mvcMatcherBuilder.pattern(HttpMethod.OPTIONS, "/**")).permitAll()
+                        .requestMatchers(mvcMatcherBuilder.pattern(HttpMethod.GET, "/api/uploads/**")).permitAll()
                         .requestMatchers(publicEndpointsRegistry.getPublicEndpoints().toArray(new String[0]))
                         .permitAll()
                         .anyRequest()
