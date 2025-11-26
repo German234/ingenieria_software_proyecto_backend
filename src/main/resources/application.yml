@@ -13,6 +13,7 @@ app:
       - "https://localhost:3000"
       - "https://localhost:3001"
       - "https://dev.lan:3000"
+      - "https://capas.fopinet.com"
     allowed-methods:
       - "GET"
       - "POST"
